@@ -169,7 +169,7 @@ PCL_DIR=d:\pcl\vcpkg\installed\x64-windows (実際の環境に合わせます)
 - 3D表示  
   3Dを選択し、Grabを選択すると、取り込みと3D表示を開始します  
   Based on Heat Mapを選択すると、距離を色のグラデーションとして表示します  
-  Full Screenを選択すると、最大（1920x1080)　で表示します  
+  Full Screenを選択すると、最大(1920x1080)で表示します  
 - Select Function  
   - Stereo Matching: Software stereo matching　を行います  
   - Disparity Filter: Disparity Filterを有効とします  
@@ -219,19 +219,24 @@ This software is licensed under the Apache 2.0 LICENSE.
 # Other Libraries  
 - Dear ImGui (*Included in project*)  
 Dear ImGui is licensed under the MIT License, see LICENSE.txt for more information.  
+https://github.com/ocornut/imgui/tree/master  
 
 - Point Cloud Library  
 PCL is released under the terms of the BSD license.  
+https://pointclouds.org/  
 
 - GLFW  
 GLFW is licensed under the zlib/libpng license.  
+https://www.glfw.org/  
 
 - GLEW  
 GLEW is originally derived from the EXTGL project by Lev Povalahev. The source code is licensed under the Modified BSD License, the Mesa 3-D License (MIT) and the Khronos License (MIT).  
-The automatic code generation scripts are released under the GNU GPL.
+The automatic code generation scripts are released under the GNU GPL.  
+https://github.com/nigels-com/glew#copyright-and-licensing  
 
 - OpenCV  
-OpenCV 4.5.0 and higher versions are licensed under the Apache 2 License.
+OpenCV 4.5.0 and higher versions are licensed under the Apache 2 License.  
+https://opencv.org/license/  
 
 - FTDI  
 [Future Technology Devices International Limited](https://ftdichip.com/)
