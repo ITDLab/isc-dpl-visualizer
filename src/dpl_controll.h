@@ -31,7 +31,7 @@ public:
 	 *  @brief Start Parameters
 	 */
 	struct StartMode {
-		int grab_mode;						/**< grab mode 0:disparity 1:correct image 2:before correct image */		
+		int grab_mode;						/**< grab mode 0:disparity 1:correct image 2:before correct image */
 
 		bool enabled_stereo_matching;		/**< enable stereo matching function */
 		bool enabled_disparity_filter;		/**< enable disparity filter function */

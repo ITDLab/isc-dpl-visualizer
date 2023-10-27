@@ -140,22 +140,34 @@ bool DplControl::Initialize(const wchar_t* module_path)
 		isc_dpl_->DeviceGetOption(IscCameraInfo::kDINF, &camera_parameter_.dinf);
 		camera_parameter_.setup_angle = 0;
 	
-        // information
-        printf("[INFO]Library opened successfully\n");    
-        char camera_str[128] = {};
-        isc_dpl_->DeviceGetOption(IscCameraInfo::kSerialNumber, &camera_str[0], (int)sizeof(camera_str));
-        printf("[INFO]Camera Serial Number:%s\n", camera_str);    
+        if (isc_dpl_configuration_.enabled_camera) {
+            // information
+            printf("[INFO]Library opened successfully\n");
+            char camera_str[128] = {};
+            isc_dpl_->DeviceGetOption(IscCameraInfo::kSerialNumber, &camera_str[0], (int)sizeof(camera_str));
+            printf("[INFO]Camera Serial Number:%s\n", camera_str);
 
-        uint64_t fpga_version = 0;
-        isc_dpl_->DeviceGetOption(IscCameraInfo::kFpgaVersion, &fpga_version);
-        printf("[INFO]Camera FPGA Version:0x%016I64X\n", fpga_version);    
+            uint64_t fpga_version = 0;
+            isc_dpl_->DeviceGetOption(IscCameraInfo::kFpgaVersion, &fpga_version);
+            printf("[INFO]Camera FPGA Version:0x%016I64X\n", fpga_version);
 
-        printf("[INFO]Camera Parameter:b(%.3f) bf(%.3f) dinf(%.3f)\n", camera_parameter_.b, camera_parameter_.bf,camera_parameter_.dinf);    
+            printf("[INFO]Camera Parameter:b(%.3f) bf(%.3f) dinf(%.3f)\n", camera_parameter_.b, camera_parameter_.bf, camera_parameter_.dinf);
+        }
+        else {
+            // information
+            printf("[INFO]Library opened successfully(Camera connection is disabled)\n");
+
+            // set some default value
+            camera_parameter_.b = 0.1F;
+            camera_parameter_.bf = 60.0F;
+            camera_parameter_.dinf = 2.01F;
+            camera_parameter_.setup_angle = 0.0F;
+        }
 
     }
 	else {
         printf("[ERROR]Failed to open library\n");
-        return false;    
+        return false;
  	}
     
     // display settings
@@ -547,29 +559,70 @@ bool DplControl::GetCameraParameter(float* b, float* bf, float* dinf, int* width
     *width = 0;
     *height = 0;
 
-    DPL_RESULT ret = isc_dpl_->DeviceGetOption(IscCameraInfo::kBaseLength, b);
-    if (ret != DPC_E_OK) {
-        return false;
-    }
+    if (isc_dpl_configuration_.enabled_camera) {
+        DPL_RESULT ret = isc_dpl_->DeviceGetOption(IscCameraInfo::kBaseLength, b);
+        if (ret != DPC_E_OK) {
+            return false;
+        }
 
-    ret = isc_dpl_->DeviceGetOption(IscCameraInfo::kBF, bf);
-    if (ret != DPC_E_OK) {
-        return false;
-    }
+        ret = isc_dpl_->DeviceGetOption(IscCameraInfo::kBF, bf);
+        if (ret != DPC_E_OK) {
+            return false;
+        }
 
-    ret = isc_dpl_->DeviceGetOption(IscCameraInfo::kDINF, dinf);
-    if (ret != DPC_E_OK) {
-        return false;
-    }
+        ret = isc_dpl_->DeviceGetOption(IscCameraInfo::kDINF, dinf);
+        if (ret != DPC_E_OK) {
+            return false;
+        }
 
-    ret = isc_dpl_->DeviceGetOption(IscCameraInfo::kWidthMax, width);
-    if (ret != DPC_E_OK) {
-        return false;
-    }
+        ret = isc_dpl_->DeviceGetOption(IscCameraInfo::kWidthMax, width);
+        if (ret != DPC_E_OK) {
+            return false;
+        }
 
-    ret = isc_dpl_->DeviceGetOption(IscCameraInfo::kHeightMax, height);
-    if (ret != DPC_E_OK) {
-        return false;
+        ret = isc_dpl_->DeviceGetOption(IscCameraInfo::kHeightMax, height);
+        if (ret != DPC_E_OK) {
+            return false;
+        }
+    }
+    else {
+        // 暫定として指定カメラを確保する
+
+        *b = camera_parameter_.b;
+        *bf = camera_parameter_.bf;
+        *dinf = camera_parameter_.dinf;
+        
+        switch (isc_dpl_configuration_.isc_camera_model) {
+        case IscCameraModel::kVM:
+            *width = 720;
+            *height = 480;
+            break;
+        case IscCameraModel::kXC:
+            *width = 1280;
+            *height = 720;
+            break;
+        case IscCameraModel::k4K:
+            *width = 3840;
+            *height = 1920;
+            break;
+        case IscCameraModel::k4KA:
+            *width = 3840;
+            *height = 1920;
+            break;
+        case IscCameraModel::k4KJ:
+            *width = 3840;
+            *height = 1920;
+            break;
+        case IscCameraModel::kUnknown:
+            *width = 3840;
+            *height = 1920;
+            break;
+        default:
+            *width = 3840;
+            *height = 1920;
+            break;
+        }
+
     }
 
     return true;

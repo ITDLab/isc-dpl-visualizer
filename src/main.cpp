@@ -95,6 +95,9 @@ int Initialize(const wchar_t* module_path, GLFWwindow** window, ImageState* imag
     initialze_window_parameter.enable_camera                    = enabled_camera;
     initialze_window_parameter.enabled_3d_viewer                = true;
     initialze_window_parameter.enable_data_processing_library   = false;
+    initialze_window_parameter.dra_min_distance                 = GetDrawMinDistance(image_state);
+    initialze_window_parameter.dra_max_distance                 = GetDrawMaxDistance(image_state);
+
     switch (camera_model) {
     case 0:// VM
         initialze_window_parameter.enable_data_processing_library = true;
@@ -128,7 +131,15 @@ int Initialize(const wchar_t* module_path, GLFWwindow** window, ImageState* imag
     viz_parameters.max_distance         = GetDrawMaxDistance(image_state);
     viz_parameters.coordinate_system    = true;
     viz_parameters.full_screen_request  = false;
-    
+
+    wchar_t record_path[_MAX_PATH] = {};
+    bool ret_getpath = GetDataRecordPath(image_state, record_path, _MAX_PATH);
+
+    char pcd_write_folder[_MAX_PATH] = {};
+    ConvertWidecharToMbcs(record_path, pcd_write_folder, _MAX_PATH);
+
+    sprintf(viz_parameters.pcd_file_write_folder, "%s", pcd_write_folder);
+
     ret = InitializePclViz(&viz_parameters);
     if (ret != 0) {
         return -1;

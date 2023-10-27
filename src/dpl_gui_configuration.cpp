@@ -157,7 +157,7 @@ bool DplGuiConfiguration::Load(const wchar_t* file_path)
 
 	// [DRAW]
 	GetPrivateProfileStringW(L"DRAW", L"MIN_DISTANCE", L"0", returned_string, sizeof(returned_string) / sizeof(wchar_t), configuration_file_name_);
-	draw_min_distance_ = _wtoi(returned_string);
+	draw_min_distance_ = _wtof(returned_string);
 
 	GetPrivateProfileStringW(L"DRAW", L"MAX_DISTANCE", L"20", returned_string, sizeof(returned_string) / sizeof(wchar_t), configuration_file_name_);
 	draw_max_distance_ = _wtof(returned_string);

@@ -51,6 +51,26 @@ void InitForWinConsole()
 }
 
 /**
+ * ワイド文字を対応するマルチバイト文字に変換します
+ *
+ * @param[in] wide_str ワイド文字
+ * @param[in] mb_str マルチバイト文字
+ * @param[in] max_length 最大長
+ *
+ * @retval 0 成功
+ * @retval other 失敗
+ */
+void ConvertWidecharToMbcs(wchar_t* wide_str, char* mb_str, const int max_length)
+{
+
+    size_t ret_val = 0;
+
+    errno_t err = wcstombs_s(&ret_val, mb_str, max_length, wide_str, _TRUNCATE);
+
+    return;
+}
+
+/**
  * 実行ファイルのフルパスより実行フォルダを取得します
  *
  * @param[out] module_path 実行フォルダ
@@ -122,6 +142,7 @@ const COMDLG_FILTERSPEC dlg_show_types[] =
 int WsOpenFileDialog(wchar_t* initial_folder, wchar_t* open_file_name)
 {
     HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+    
     if (SUCCEEDED(hr)) {
         IFileOpenDialog* ifile_open_dialog;
 
@@ -140,6 +161,11 @@ int WsOpenFileDialog(wchar_t* initial_folder, wchar_t* open_file_name)
             if (SUCCEEDED(hr)) {
                 ifile_open_dialog->SetFolder(ishell_item);
                 ishell_item->Release();
+            }
+            else {
+                ifile_open_dialog->Release();
+                CoUninitialize();
+                return -1;
             }
 
             // Show the Open dialog box.
@@ -162,9 +188,21 @@ int WsOpenFileDialog(wchar_t* initial_folder, wchar_t* open_file_name)
                     ishell_item_get->Release();
                 }
             }
+            else {
+                ifile_open_dialog->Release();
+                CoUninitialize();
+                return -1;
+            }
             ifile_open_dialog->Release();
         }
+        else {
+            CoUninitialize();
+            return -1;
+        }
         CoUninitialize();
+    }
+    else {
+        return -1;
     }
 
     return 0;
@@ -205,6 +243,11 @@ int WsOpenFolderDialog(wchar_t* open_folder_name)
                 ifile_open_dialog->SetFolder(ishell_item);
                 ishell_item->Release();
             }
+            else {
+                ifile_open_dialog->Release();
+                CoUninitialize();
+                return -1;
+            }
 
             // Show the Open dialog box.
             hr = ifile_open_dialog->Show(NULL);
@@ -227,9 +270,21 @@ int WsOpenFolderDialog(wchar_t* open_folder_name)
                     ishell_item_get->Release();
                 }
             }
+            else {
+                ifile_open_dialog->Release();
+                CoUninitialize();
+                return -1;
+            }
             ifile_open_dialog->Release();
         }
+        else {
+            CoUninitialize();
+            return -1;
+        }
         CoUninitialize();
+    }
+    else {
+        return -1;
     }
 
     return ret;

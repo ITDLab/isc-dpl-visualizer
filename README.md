@@ -4,10 +4,14 @@ Application for Data processing library project.
 ****
 ## Outline 
 ****
-isc-dpl-visualizerは、isc-dplライブラリを使用した点群の表示アプリケーションです  
+isc-dpl-visualizerは、Point Cloud Libraryを使用し、isc-dplライブラリの出力を点群として処理するサンプルコードです  
+本サンプルコードでは、isc-dplライブラリの出力を点群に変換し、簡単なフィルター処理を行った後、それを表示します  
+フィルター処理及び表示（3D）に、Point Cloud Libraryを使用しています  
+
+isc-dplライブラリは、ISCシリーズステレオカメラに対応したカメラ制御及び視差データ処理を行うライブラリです    
 isc-dplについては、 [isc-dpl](https://github.com/ITDLab/isc-dpl)　を参照してください  
 
-isc-dpl-visualizerでは、点群の表示にPoint Cloud Libraryを使用しています  
+Point Cloud Library (PCL) は，3D点群 (Point Cloud)を入力とする「ロボットビジョン」や「3D幾何処理」のアルゴリズム群を集めたライブラリです  
 Point Cloud Libraryについては、[公式ホームページ](https://pointclouds.org/)　を参照してください
 
 isc-dpl-visualizerでは、GUIの構築にDear ImGuiを使用しています
@@ -47,14 +51,12 @@ Dear ImGuiについては、[公式ホームページ](https://github.com/ocornu
 - GLEW、GLFWのインストール
 
 - サンプルアプリケーションのBuild
-    - サンプルアプリケーションのBuild
 
 ## 必要なアプリケーションのインストール
 - Visual Studioのインストール
-    - Visual Studio をインストールします（2019 or later）
-
-- 英語の言語パッケージを追加インストールします
-    - Visual Studio Installer　よりインストールできます
+    - Visual Studio をインストールします（2019 or later）  
+    - 英語の言語パッケージを追加インストールします  
+      Visual Studio Installer　よりインストールできます  
 
 - CMAKEのインストール
     - CMAKEの[公式ホームページ](https://cmake.org/)よりWindows用のインストーラをダウンロードして実行します
@@ -65,9 +67,8 @@ Dear ImGuiについては、[公式ホームページ](https://github.com/ocornu
     - インストール方法については、ホームページの内容を参照してください
 
 - VCPKGのインストール
-    - githubよりvcpkgをクローンしVCPKGをビルドします
-    - ビルド作業はPowerShell上で行います
-
+    - githubよりvcpkgをクローンしVCPKGをビルドします  
+    - ビルド作業はPowerShell上で行います  
     - VCPKGをインストールしたいフォルダにVCPKGをクローンしビルドを実行します  
     例）Dドライブで作業します  
 > PS C:\> d:  
@@ -162,17 +163,40 @@ PCL_DIR=d:\pcl\vcpkg\installed\x64-windows (実際の環境に合わせます)
 
 - dpl_visualizer.exe を実行します  
 
+## サンプルアプリケーションの操作
+- 2D表示  
+  Grabを選択すると、取り込みと表示を開始します  
+- 3D表示  
+  3Dを選択し、Grabを選択すると、取り込みと3D表示を開始します  
+  Based on Heat Mapを選択すると、距離を色のグラデーションとして表示します  
+  Full Screenを選択すると、最大（1920x1080)　で表示します  
+- Select Function  
+  - Stereo Matching: Software stereo matching　を行います  
+  - Disparity Filter: Disparity Filterを有効とします  
+  - Color Image: （可能であれば）Color画像を表示します  
+  - Camera Control: カメラの露光モードなどを設定します  
+  - PCL Filter: Point cloud Library　の機能を使ったフィルタを適用します  
+    - Pass Through Filter: 表示する距離の範囲を設定します  
+    - Down Sampling: ボクセル内の点は1つを除いて処理されます  
+    - Radius Outlier Removal: 指定された半径内に指定した近傍数より少ないポイントが見つかった場合は、それらを削除します  
+    - Plane Detection: 平面上にあるポイントを検出します  
+
 ****
-## Project structure
+## 使用上の注意
+****
+- PCLによる3D表示時に、Windowのサイズを変更しないでください 表示が停止します  
+  最大化は、操作パネルより可能です  
+
+****
+# Project structure
 ****
 
+****
+# Manuals
+****
 
 ****
-## Manuals
-****
-
-****
-## License  
+# License  
 ****
 This software is licensed under the Apache 2.0 LICENSE.
 
@@ -192,15 +216,15 @@ This software is licensed under the Apache 2.0 LICENSE.
     
 ****  
 
-## Other Libraries  
+# Other Libraries  
 - Dear ImGui (*Included in project*)  
 Dear ImGui is licensed under the MIT License, see LICENSE.txt for more information.  
 
 - Point Cloud Library  
-PCL is released under the terms of the BSD license  
+PCL is released under the terms of the BSD license.  
 
 - GLFW  
-GLFW is licensed under the zlib/libpng license
+GLFW is licensed under the zlib/libpng license.  
 
 - GLEW  
 GLEW is originally derived from the EXTGL project by Lev Povalahev. The source code is licensed under the Modified BSD License, the Mesa 3-D License (MIT) and the Khronos License (MIT).  

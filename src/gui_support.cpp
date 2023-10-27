@@ -188,7 +188,7 @@ ImageDataBuffers image_buffers_ = {};   /**< 作業用バッファー */
 // 
 // functions
 // 
-int DrawControl(GuiControls& gui_control);
+int DrawControl(GuiControls& gui_control, ImageState* image_state);
 int ProcedureControl(GuiControls& gui_control_previous, GuiControls& gui_control_latest, DplControl::StartMode& dpl_control_start_mode_latest, ImageState* image_state);
 int DrawDplImages(GuiControls& gui_control_latest, ImageState* image_state, GLuint* texture, ImageDataBuffers* image_buffers);
 int DrawPCLVizImage(GuiControls& gui_control_latest, DplControl::StartMode& dpl_control_start_mode_latest, ImageState* image_state, ImageDataBuffers* image_buffers,
@@ -265,8 +265,8 @@ GLFWwindow* InitializeWindow(InitializeWindowParameter* initialze_window_paramet
 
     gui_control_.pcl_filter_parameter.enabled_remove_nan                            = true;
     gui_control_.pcl_filter_parameter.enabled_pass_through_filter                   = true;
-    gui_control_.pcl_filter_parameter.pass_through_filter_range.min                 = 1.0;
-    gui_control_.pcl_filter_parameter.pass_through_filter_range.max                 = 10.0;
+    gui_control_.pcl_filter_parameter.pass_through_filter_range.min                 = std::max(1.0, initialze_window_parameter->dra_min_distance);
+    gui_control_.pcl_filter_parameter.pass_through_filter_range.max                 = std::min(10.0, initialze_window_parameter->dra_max_distance);
     gui_control_.pcl_filter_parameter.enabled_down_sampling                         = false;
     gui_control_.pcl_filter_parameter.down_sampling_boxel_size                      = 0.01f;
     gui_control_.pcl_filter_parameter.enabled_radius_outlier_removal                = false;
@@ -567,7 +567,7 @@ int DrawWindow(ImageState* image_state)
     // GUI controls
     GuiControls gui_control_previous = {};
     memcpy(&gui_control_previous, &gui_control_, sizeof(GuiControls));
-    int ret = DrawControl(gui_control_);
+    int ret = DrawControl(gui_control_, image_state);
 
     // camera control
     ret = ProcedureControl(gui_control_previous, gui_control_, dpl_control_start_mode_, image_state);
@@ -579,7 +579,7 @@ int DrawWindow(ImageState* image_state)
             ret = DrawPCLVizImage(gui_control_, dpl_control_start_mode_, image_state, &image_buffers_, &input_args_, &output_args_);
         
             // show pikc point information
-            bool show_3d_pick_info = true;
+            bool show_3d_pick_info = false;
             if (show_3d_pick_info) {
                 float xp = (float)gui_control_.gui_loc_control.position.x;
                 float yp = (float)gui_control_.gui_loc_control.position.y + (float)gui_control_.gui_loc_control.size.cy + 10.0F;
@@ -607,6 +607,7 @@ int DrawWindow(ImageState* image_state)
         }
     }
 
+#if 0
     // --- for debug ---
     bool show_demo_window = true;
     bool show_another_window = true;
@@ -615,7 +616,7 @@ int DrawWindow(ImageState* image_state)
     if (show_demo_window)
         ImGui::ShowDemoWindow(&show_demo_window);
 
-    // 2.
+    // 2. Show mouse state
     if (show_another_window)
     {
         ImGui::Begin("Another Window", &show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
@@ -642,6 +643,7 @@ int DrawWindow(ImageState* image_state)
         ImGui::End();
     }
     // -----------------
+#endif
 
 #if 0 
     // some code example
@@ -697,11 +699,12 @@ int DrawWindow(ImageState* image_state)
  * GUIコンポーネントの更新.
  *
  * @param[in] gui_control GUIコンポーネントの状態
+ * @param[in] image_state DPLControlを含むDPL制御用構造体
  *
  * @retval 0 成功
  * @retval other 失敗
  */
-int DrawControl(GuiControls& gui_control)
+int DrawControl(GuiControls& gui_control, ImageState* image_state)
 {
     /*
         [Control]
@@ -833,8 +836,12 @@ int DrawControl(GuiControls& gui_control)
 
             ImGui::Checkbox("Pass Through Filter", &gui_control.pcl_filter_parameter.enabled_pass_through_filter);
             if (gui_control.pcl_filter_parameter.enabled_pass_through_filter) {
-                ImGui::SliderFloat("Min(m)", &gui_control.pcl_filter_parameter.pass_through_filter_range.min, 0.5f, 20.0f);
-                ImGui::SliderFloat("Max(m)", &gui_control.pcl_filter_parameter.pass_through_filter_range.max, 0.5f, 20.0f);
+
+                float min_distance = (float)GetDrawMinDistance(image_state);
+                float max_distance = (float)GetDrawMaxDistance(image_state);
+
+                ImGui::SliderFloat("Min(m)", &gui_control.pcl_filter_parameter.pass_through_filter_range.min, min_distance, max_distance);
+                ImGui::SliderFloat("Max(m)", &gui_control.pcl_filter_parameter.pass_through_filter_range.max, min_distance, max_distance);
             }
 
             ImGui::Checkbox("Down Sampling", &gui_control.pcl_filter_parameter.enabled_down_sampling);
@@ -1103,6 +1110,7 @@ int StartGrabProcedure(GuiControls& gui_control_latest, DplControl::StartMode& d
         IscRawFileHeader raw_file_headaer = {};
         int ret = GetPlayFileInformation(image_state, dpl_control_start_mode_latest.play_file_name, &raw_file_headaer);
 
+        // Update camera-specific parameters
         image_state->b = raw_file_headaer.base_length;
         image_state->bf = raw_file_headaer.bf;
         image_state->dinf = raw_file_headaer.d_inf;
@@ -1189,6 +1197,12 @@ int StartGrabProcedure(GuiControls& gui_control_latest, DplControl::StartMode& d
         }
         else if (raw_file_headaer.color_mode == 1) {
             gui_control_latest.color = true;
+        }
+    }
+    else {
+        // Update camera parameters
+        if (gui_control_latest.enable_camera) {
+            int ret = image_state->dpl_control->GetCameraParameter(&(image_state->b), &(image_state->bf), &(image_state->dinf), &(image_state->width), &(image_state->height));
         }
     }
 
@@ -2054,6 +2068,10 @@ int DrawPCLVizImage(GuiControls& gui_control_latest, DplControl::StartMode& dpl_
             input_args->pcl_filter_parameter.enabled_plane_detection        = gui_control_latest.pcl_filter_parameter.enabled_plane_detection;
             input_args->pcl_filter_parameter.plane_detection_threshold      = gui_control_latest.pcl_filter_parameter.plane_detection_threshold;
 
+            input_args->base_length                                         = image_state->b;
+            input_args->bf                                                  = image_state->bf;
+            input_args->d_inf                                               = image_state->dinf;
+
             // one shot
             input_args->full_screen_request                                 = gui_control_latest.viz_mode_3d_full_screen_req;
             input_args->restore_screen_request                              = gui_control_latest.viz_mode_3d_restore_screen_req;
@@ -2177,6 +2195,16 @@ int DrawPCLVizImage(GuiControls& gui_control_latest, DplControl::StartMode& dpl_
 
             input_args->pcl_filter_parameter.enabled_plane_detection        = gui_control_latest.pcl_filter_parameter.enabled_plane_detection;
             input_args->pcl_filter_parameter.plane_detection_threshold      = gui_control_latest.pcl_filter_parameter.plane_detection_threshold;
+
+            input_args->base_length                                         = image_state->b;
+            input_args->bf                                                  = image_state->bf;
+            input_args->d_inf                                               = image_state->dinf;
+
+            // one shot
+            input_args->full_screen_request                                 = gui_control_latest.viz_mode_3d_full_screen_req;
+            input_args->restore_screen_request                              = gui_control_latest.viz_mode_3d_restore_screen_req;
+            gui_control_latest.viz_mode_3d_full_screen_req                  = false;
+            gui_control_latest.viz_mode_3d_restore_screen_req               = false;
 
             int viz_ret = RunPclViz(input_args, output_args);
         }

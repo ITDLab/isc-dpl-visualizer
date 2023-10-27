@@ -112,6 +112,10 @@ struct PclVizControl {
 	// pick control/information
 	CRITICAL_SECTION pick_callback_critical;
 	PickInforamtion pick_information;
+
+	// ketbord call back 
+	CRITICAL_SECTION kbd_callback_critical;
+
 };
 PclVizControl pcl_viz_control_ = {};	/**< 表示Threadへ渡すデータ */
 
@@ -143,6 +147,7 @@ int DownSampling(const double boxel_size, pcl::PointCloud<pcl::PointXYZRGBA>::Pt
 
 int PlaneDetection(double threshold, pcl::PointCloud<pcl::PointXYZRGBA>::Ptr cloud);
 
+int WritePclToFile(char* write_file_name, pcl::PointCloud<pcl::PointXYZRGBA>::Ptr cloud);
 
 /**
  * 初期化します.
@@ -170,6 +175,8 @@ int InitializePclViz(const VizParameters* init_viz_parameters)
 	pcl_viz_control->viz_parameters.coordinate_system		= init_viz_parameters->coordinate_system;
 	pcl_viz_control->viz_parameters.full_screen_request		= init_viz_parameters->full_screen_request;
 	pcl_viz_control->viz_parameters.restore_screen_request	= init_viz_parameters->restore_screen_request;
+
+	sprintf(pcl_viz_control->viz_parameters.pcd_file_write_folder, "%s", init_viz_parameters->pcd_file_write_folder);
 
 	pcl_viz_control->operation_status = OperationStatus::idle;
 
@@ -217,6 +224,7 @@ int InitializePclViz(const VizParameters* init_viz_parameters)
 
 	InitializeCriticalSection(&pcl_viz_control->threads_critical);
 	InitializeCriticalSection(&pcl_viz_control->pick_callback_critical);
+	InitializeCriticalSection(&pcl_viz_control->kbd_callback_critical);
 
 	return 0;
 }
@@ -277,6 +285,7 @@ int TerminatePclViz()
 	// delete flags
 	DeleteCriticalSection(&pcl_viz_control->threads_critical);
 	DeleteCriticalSection(&pcl_viz_control->pick_callback_critical);
+	DeleteCriticalSection(&pcl_viz_control->kbd_callback_critical);
 
 	if (pcl_viz_control->handle_semaphore_pcl_draw != NULL) {
 		CloseHandle(pcl_viz_control->handle_semaphore_pcl_draw);
@@ -450,6 +459,10 @@ int RunPclViz(PclVizInputArgs* input_args, PclVizOutputArgs* output_args)
 	int image_status = 0;
 
 	if (put_index >= 0 && buffer_data != nullptr) {
+		pcl_viz_control->viz_parameters.base_length		= input_args->base_length;
+		pcl_viz_control->viz_parameters.d_inf			= input_args->d_inf;
+		pcl_viz_control->viz_parameters.bf				= input_args->bf;
+
 		buffer_data->pcl_data.width						= input_args->width;
 		buffer_data->pcl_data.height					= input_args->height;
 		buffer_data->pcl_data.base_image_channel_count	= input_args->base_image_channel_count;
@@ -636,6 +649,8 @@ unsigned __stdcall BuildPCLThread(void* context)
 
 					// CloudViewer に与える PointCloud 
 					pcl::PointCloud<pcl::PointXYZRGBA>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGBA>);
+					//NaNを含む可能性があるならfalseにする。基本はfalseでよい
+					cloud->is_dense = false;
 
 					const int width = mat_data_proc_image_scale_flip.cols;
 					const int height = mat_data_proc_image_scale_flip.rows;
@@ -666,8 +681,13 @@ unsigned __stdcall BuildPCLThread(void* context)
 						// but we will not use it.
 						// このmappingにより元のクラウドのどのポイントが新しいクラウドのどこに写像されたかわかるが、
 						// これは使わない
+
+						pcl::PointCloud<pcl::PointXYZRGBA>::Ptr temp_filtered_cloud(new pcl::PointCloud<pcl::PointXYZRGBA>);
+
 						std::vector<int> mapping;
-						pcl::removeNaNFromPointCloud(*cloud, *cloud, mapping);
+						pcl::removeNaNFromPointCloud(*cloud, *temp_filtered_cloud, mapping);
+
+						cloud = std::move(temp_filtered_cloud);
 					}
 
 					if (path_through_filter) {
@@ -676,9 +696,9 @@ unsigned __stdcall BuildPCLThread(void* context)
 
 						pcl::PointCloud<pcl::PointXYZRGBA>::Ptr temp_filtered_cloud(new pcl::PointCloud<pcl::PointXYZRGBA>);
 
-						//int ret = PathThroughFilter("z", min_length, max_length, cloud, temp_filtered_cloud);
+						int ret = PathThroughFilter("z", min_length, max_length, cloud, temp_filtered_cloud);
 						//int ret = PathThroughFilter("y", min_length, max_length, cloud, temp_filtered_cloud);
-						int ret = PathThroughFilter("x", min_length, max_length, cloud, temp_filtered_cloud);
+						//int ret = PathThroughFilter("x", min_length, max_length, cloud, temp_filtered_cloud);
 
 						cloud = std::move(temp_filtered_cloud);
 					}
@@ -738,7 +758,7 @@ unsigned __stdcall BuildPCLThread(void* context)
  * Vizulizer表示上でのMouse ClickのCallback.
  *
  * @param[in] event マウスのPickイベント情報
- * @param[out] args クリック位置の情報
+ * @param[out] args cloudデータ
  *
  * @retval 0 成功
  * @retval other 失敗
@@ -746,9 +766,16 @@ unsigned __stdcall BuildPCLThread(void* context)
  */
 static void PointPickCallback(const pcl::visualization::PointPickingEvent& event, void* args)
 {
+	/*
+		正しくPickできないため、暫定的にこの機能を未使用とします
+
+	*/
+
+	return;
 
 	// get 3D information
-	if (event.getPointIndex() == -1)
+	int idx = event.getPointIndex();
+	if (idx == -1)
 		return;
 
 	float x = 0.0F, y = 0.0F, z = 0.0F;
@@ -760,6 +787,21 @@ static void PointPickCallback(const pcl::visualization::PointPickingEvent& event
 		cb_args = (struct CallbackArgs*)args;
 
 		EnterCriticalSection(&cb_args->pcl_viz_control->pick_callback_critical);
+
+		if (0) {
+			pcl::search::KdTree<pcl::PointXYZRGBA> search;
+			search.setInputCloud(cb_args->pcl_viz_control->cloud);
+			// Return the correct index in the cloud instead of the index on the screen
+			pcl::Indices indices(1);
+			std::vector<float> distances(1);
+
+			// Because VTK/OpenGL stores data without NaN, we lose the 1-1 correspondence, so we must search for the real point
+			pcl::PointXYZRGBA picked_pt;
+			event.getPoint(picked_pt.x, picked_pt.y, picked_pt.z);
+			search.nearestKSearch(picked_pt, 1, indices, distances);
+
+			PCL_INFO("Point index picked: %d (real: %d) - [%f, %f, %f]\n", idx, indices[0], picked_pt.x, picked_pt.y, picked_pt.z);
+		}
 
 		int index = 0;
 		cb_args->pcl_viz_control->pick_information.pick_data[index].x = x;
@@ -773,7 +815,7 @@ static void PointPickCallback(const pcl::visualization::PointPickingEvent& event
 	}
 
 	// debug
-	{
+	if (false) {
 		printf("[INFO][DEBUG]Clicked 3D point=x:%f, y:%f, z:%f\n", x, y, z);
 		printf("\n");
 
@@ -785,6 +827,42 @@ static void PointPickCallback(const pcl::visualization::PointPickingEvent& event
 			printf("[INFO][DEBUG]camera view:(%f,%f,%f)\n", camera_info.view[0], camera_info.view[1], camera_info.view[2]);
 			printf("[INFO][DEBUG]camera focal:(%f,%f,%f)\n", camera_info.focal[0], camera_info.focal[1], camera_info.focal[2]);
 			printf("\n");
+		}
+	}
+
+	return;
+}
+
+/**
+ * Vizulizer表示上でのkeyboard ClickのCallback.
+ *
+ * @param[in] event マウスのPickイベント情報
+ * @param[out] args cloudデータ
+ *
+ * @retval 0 成功
+ * @retval other 失敗
+ *
+ */
+static void KeyboardEventCallback(const pcl::visualization::KeyboardEvent& event, void* args)
+{
+
+	if (event.getKeySym() == "n" && event.keyDown()) {
+		struct CallbackArgs* cb_args = nullptr;
+
+		if (args != nullptr) {
+			cb_args = (struct CallbackArgs*)args;
+
+			EnterCriticalSection(&cb_args->pcl_viz_control->threads_critical);
+			pcl::PointCloud<pcl::PointXYZRGBA>::Ptr deep_copy(new pcl::PointCloud<pcl::PointXYZRGBA>(*cb_args->pcl_viz_control->cloud));
+			LeaveCriticalSection(&cb_args->pcl_viz_control->threads_critical);
+
+			int ret = WritePclToFile(cb_args->pcl_viz_control->viz_parameters.pcd_file_write_folder, deep_copy);
+			
+			// debug
+			if (false) {
+				printf("[INFO][DEBUG]KeyboardEventCallback\n");
+				printf("\n");
+			}
 		}
 	}
 
@@ -853,6 +931,9 @@ unsigned __stdcall VisualizerThread(void* context)
 	// mouse pick event
 	viewer->registerPointPickingCallback(PointPickCallback, (void*)&cb_args);
 
+	// keyboard callback
+	viewer->registerKeyboardCallback(KeyboardEventCallback, (void*)&cb_args);
+
 	// window order
 	HWND hwnd = FindWindowA(NULL, visualizer_window_name.c_str());
 	{
@@ -872,7 +953,8 @@ unsigned __stdcall VisualizerThread(void* context)
 
 	// default camera position
 	/*
-		カメラ正面からの風景にします
+		カメラの初期位置を指定する
+		setCameraParameters(camera_info)
 	*/
 	pcl::visualization::Camera camera_info;
 	camera_info.pos[0]		= -9.806882;
@@ -965,8 +1047,8 @@ void BuildPointCloud(	const int width, const int height, const double d_inf, con
 
 	/*
 		座標系について
-		 ROS : 右手系 (この関数で生成する point cloud)
-		 Unity : 左手系
+		 ROS	: 右手系
+		 Unity	: 左手系
  
 		 ROSではロボットの進行方向がx軸、左方向がy軸、上方向がz軸の正方向
 
@@ -1029,9 +1111,9 @@ void BuildPointCloud(	const int width, const int height, const double d_inf, con
 						r = src_image[j][2];
 
 						pcl::PointXYZRGBA point;
-						point.x = z;		// x;
-						point.y = x * -1;	// y;
-						point.z = y;		// z;
+						point.x = -1 * x;	// z;		// x;
+						point.y = y;		// x * -1;	// y;
+						point.z = z;		// y;		// z;
 
 						point.r = r;
 						point.g = g;
@@ -1040,28 +1122,10 @@ void BuildPointCloud(	const int width, const int height, const double d_inf, con
 						cloud->push_back(point);
 					}
 					else {
-						//pcl::PointXYZRGBA point;
-						//point.x = std::numeric_limits<float>::quiet_NaN();
-						//point.y = std::numeric_limits<float>::quiet_NaN();
-						//point.z = std::numeric_limits<float>::quiet_NaN();
-
-						//point.r = 0;
-						//point.g = 0;
-						//point.b = 0;
-
 						cloud->push_back(point_nan);
 					}
 				}
 				else {
-					//pcl::PointXYZRGBA point;
-					//point.x = std::numeric_limits<float>::quiet_NaN();
-					//point.y = std::numeric_limits<float>::quiet_NaN();
-					//point.z = std::numeric_limits<float>::quiet_NaN();
-
-					//point.r = 0;
-					//point.g = 0;
-					//point.b = 0;
-
 					cloud->push_back(point_nan);
 				}
 			}
@@ -1096,9 +1160,9 @@ void BuildPointCloud(	const int width, const int height, const double d_inf, con
 						r = src_image[j][2];
 
 						pcl::PointXYZRGBA point;
-						point.x = z;		// x;
-						point.y = x * -1;	// y;
-						point.z = y;		// z;
+						point.x = -1 * x;	// z;		// x;
+						point.y = y;		// x * -1;	// y;
+						point.z = z;		// y;		// z;
 
 						point.r = r;
 						point.g = g;
@@ -1107,28 +1171,10 @@ void BuildPointCloud(	const int width, const int height, const double d_inf, con
 						cloud->push_back(point);
 					}
 					else {
-						//pcl::PointXYZRGBA point;
-						//point.x = std::numeric_limits<float>::quiet_NaN();
-						//point.y = std::numeric_limits<float>::quiet_NaN();
-						//point.z = std::numeric_limits<float>::quiet_NaN();
-
-						//point.r = 0;
-						//point.g = 0;
-						//point.b = 0;
-
 						cloud->push_back(point_nan);
 					}
 				}
 				else {
-					//pcl::PointXYZRGBA point;
-					//point.x = std::numeric_limits<float>::quiet_NaN();
-					//point.y = std::numeric_limits<float>::quiet_NaN();
-					//point.z = std::numeric_limits<float>::quiet_NaN();
-
-					//point.r = 0;
-					//point.g = 0;
-					//point.b = 0;
-
 					cloud->push_back(point_nan);
 				}
 
@@ -1273,3 +1319,36 @@ int PlaneDetection(double threshold, pcl::PointCloud<pcl::PointXYZRGBA>::Ptr clo
 	return 0;
 }
 
+/**
+ * Point Cloudをファイルへ保存します.　保存形式は、PCD COMPRESSED　です
+ *
+ * @param[in] write_file_name 保存ファイル名
+ * @param[inout] cloud 入力点群データ
+ *
+ * @retval 0 成功
+ * @retval other 失敗
+ *
+ */
+int WritePclToFile(char* write_folder_name, pcl::PointCloud<pcl::PointXYZRGBA>::Ptr cloud)
+{
+
+	SYSTEMTIME st = {};
+	GetLocalTime(&st);
+
+	char date_time_name[_MAX_PATH] = {};
+	// YYYYMMDD_HHMMSS
+	sprintf(date_time_name, "%04d%02d%02d_%02d%02d%02d", st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond);
+
+	char write_file_name[_MAX_PATH] = {};
+	sprintf(write_file_name, "%s\\dpl-pcd-dada_%s.pcd", write_folder_name, date_time_name);
+
+	std::string file_name(write_file_name);
+
+	int ret = pcl::io::savePCDFileBinaryCompressed(file_name, *cloud);
+	if (ret != 0) {
+		// failed
+		return ret;
+	}
+
+	return 0;
+}

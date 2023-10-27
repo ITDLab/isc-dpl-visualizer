@@ -24,6 +24,11 @@
  */
 void InitForWinConsole();
 
+/** @brief Converts wide characters to corresponding multibyte characters.
+    @return none
+ */
+void ConvertWidecharToMbcs(wchar_t* wide_str, char* mb_str, const int max_length);
+
 /** @brief Get the executable folder from the full path of the executable.
     @return none
  */

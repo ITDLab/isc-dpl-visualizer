@@ -74,13 +74,17 @@ struct VizParameters {
 	bool coordinate_system;					/**< Display axis */
 	bool full_screen_request;				/**< Request full screen display */
 	bool restore_screen_request;			/**< Exit full-screen display */
-
+	char pcd_file_write_folder[_MAX_PATH];	/**< Folder name for save pcd file */
 };
 
 /** @struct  PclVizInputArgs
  *  @brief Display Data
  */
 struct PclVizInputArgs {
+	double d_inf;								/**< Camera Specific Parameters */
+	double base_length;							/**< Camera baseline length */
+	double bf;									/**< Camera Specific Parameters */
+
 	int width;									/**< Image Width */
 	int height;									/**< Image Height */
 	int base_image_channel_count;				/**< Channkel number of images */
@@ -96,6 +100,7 @@ struct PclVizInputArgs {
 	bool restore_screen_request;				/**< Exit full-screen display */
 
 	PclFilterParameter pcl_filter_parameter;	/**< Display PCL data and filter settings */
+
 };
 
 /** @struct  PclVizOutputArgs

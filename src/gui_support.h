@@ -30,6 +30,9 @@ struct InitializeWindowParameter {
 
 	bool enable_data_processing_library;	/**< Data processing library enabled */
 	bool enabled_3d_viewer;					/**< 3D display is enabled */
+
+	double dra_min_distance;				/**< Minimum display distance */
+	double dra_max_distance;				/**< Maximum display distance */
 };
 
 /** @brief Creation and initialization of GLFW Window.
