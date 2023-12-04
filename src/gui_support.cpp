@@ -505,7 +505,7 @@ int InitializeWindowCameraControl(const bool is_update, ImageState* image_state)
 
         if (iscdpl != nullptr) {
             bool read_value = false;
-            int ret = iscdpl->DeviceGetOption(IscCameraParameter::kAdjustAuto, &read_value);
+            int ret = iscdpl->DeviceGetOption(IscCameraParameter::kAutoCalibration, &read_value);
             if (ret == 0) {
                 gui_control_.auto_adjust = read_value;
             }
@@ -1414,7 +1414,7 @@ int ProcedureControl(GuiControls& gui_control_previous, GuiControls& gui_control
 
         if (iscdpl != nullptr) {
             bool read_value = false;
-            int ret = iscdpl->DeviceGetOption(IscCameraParameter::kAdjustAuto, &read_value);
+            int ret = iscdpl->DeviceGetOption(IscCameraParameter::kAutoCalibration, &read_value);
             if (ret == 0) {
                 gui_control_latest.auto_adjust = read_value;
             }
@@ -1496,9 +1496,9 @@ int ProcedureControl(GuiControls& gui_control_previous, GuiControls& gui_control
 
         ns_isc_dpl::IscDpl* iscdpl = image_state->dpl_control->GetDplObgkect();
         if (iscdpl != nullptr) {
-            int ret = iscdpl->DeviceSetOption(IscCameraParameter::kAdjustAuto, gui_control_latest.auto_adjust);
+            int ret = iscdpl->DeviceSetOption(IscCameraParameter::kAutoCalibration, gui_control_latest.auto_adjust);
             bool read_value = false;
-            ret = iscdpl->DeviceGetOption(IscCameraParameter::kAdjustAuto, &read_value);
+            ret = iscdpl->DeviceGetOption(IscCameraParameter::kAutoCalibration, &read_value);
             if (ret == 0) {
                 gui_control_latest.auto_adjust = read_value;
             }
