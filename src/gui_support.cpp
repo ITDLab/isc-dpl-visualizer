@@ -265,8 +265,8 @@ GLFWwindow* InitializeWindow(InitializeWindowParameter* initialze_window_paramet
 
     gui_control_.pcl_filter_parameter.enabled_remove_nan                            = true;
     gui_control_.pcl_filter_parameter.enabled_pass_through_filter                   = true;
-    gui_control_.pcl_filter_parameter.pass_through_filter_range.min                 = std::max(1.0, initialze_window_parameter->dra_min_distance);
-    gui_control_.pcl_filter_parameter.pass_through_filter_range.max                 = std::min(10.0, initialze_window_parameter->dra_max_distance);
+    gui_control_.pcl_filter_parameter.pass_through_filter_range.min                 = std::max(0.1, initialze_window_parameter->dra_min_distance);
+    gui_control_.pcl_filter_parameter.pass_through_filter_range.max                 = std::min(40.0, initialze_window_parameter->dra_max_distance);
     gui_control_.pcl_filter_parameter.enabled_down_sampling                         = false;
     gui_control_.pcl_filter_parameter.down_sampling_boxel_size                      = 0.01f;
     gui_control_.pcl_filter_parameter.enabled_radius_outlier_removal                = false;
@@ -1657,6 +1657,19 @@ int DrawDplImages(GuiControls& gui_control_latest, ImageState* image_state, GLui
             const int height = image_state->isc_data_proc_result_data.isc_image_info.frame_data[fd_inex].depth.height;
             float* depth = image_state->isc_data_proc_result_data.isc_image_info.frame_data[fd_inex].depth.image;
 
+            {
+                const double min_distance = gui_control_latest.pcl_filter_parameter.pass_through_filter_range.min;
+                const double max_distance = gui_control_latest.pcl_filter_parameter.pass_through_filter_range.max;
+
+                double min_distance_temp = 0.0f;
+                double max_distance_temp = 0.0f;
+                image_state->dpl_control->GetMinMaxDistance(&min_distance_temp, &max_distance_temp);
+
+                if ((min_distance != min_distance_temp) || (max_distance != max_distance_temp)) {
+                    image_state->dpl_control->RebuildDrawColorMap(min_distance, max_distance);
+                }
+            }
+
             image_state->dpl_control->ConvertDisparityToImage(  image_state->b, image_state->angle, image_state->bf, image_state->dinf,
                                                                 width, height, depth, image_state->bgra_image);
 
@@ -1818,6 +1831,19 @@ int DrawDplImages(GuiControls& gui_control_latest, ImageState* image_state, GLui
                 float* depth = image_state->isc_image_Info.frame_data[fd_inex].depth.image;
 
                 if ((depth_width != 0) && (depth_height != 0)) {
+                    {
+                        const double min_distance = gui_control_latest.pcl_filter_parameter.pass_through_filter_range.min;
+                        const double max_distance = gui_control_latest.pcl_filter_parameter.pass_through_filter_range.max;
+
+                        double min_distance_temp = 0.0f;
+                        double max_distance_temp = 0.0f;
+                        image_state->dpl_control->GetMinMaxDistance(&min_distance_temp, &max_distance_temp);
+
+                        if ((min_distance != min_distance_temp) || (max_distance != max_distance_temp)) {
+                            image_state->dpl_control->RebuildDrawColorMap(min_distance, max_distance);
+                        }
+                    }
+
                     image_state->dpl_control->ConvertDisparityToImage(image_state->b, image_state->angle, image_state->bf, image_state->dinf,
                         depth_width, depth_height, depth, image_state->bgra_image);
 

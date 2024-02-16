@@ -1344,7 +1344,8 @@ int WritePclToFile(char* write_folder_name, pcl::PointCloud<pcl::PointXYZRGBA>::
 
 	std::string file_name(write_file_name);
 
-	int ret = pcl::io::savePCDFileBinaryCompressed(file_name, *cloud);
+	//int ret = pcl::io::savePCDFileBinaryCompressed(file_name, *cloud);
+	int ret = pcl::io::savePCDFileBinary(file_name, *cloud);
 	if (ret != 0) {
 		// failed
 		return ret;
