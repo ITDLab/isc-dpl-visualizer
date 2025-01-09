@@ -124,7 +124,7 @@ public:
 	/** @brief Retrieves header information for saved data files.
 		@return true, if successful.
 	 */
-	bool GetFileInformation(wchar_t* file_name, IscRawFileHeader* raw_file_headaer);
+	bool GetFileInformation(wchar_t* file_name, IscRawFileHeader* raw_file_headaer, IscPlayFileInformation* play_file_information);
 
 	/** @brief Obtain the minimum and maximum distance of the drawing that has been set.
 		@return 0, if successful.

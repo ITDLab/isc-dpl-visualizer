@@ -1108,7 +1108,8 @@ int StartGrabProcedure(GuiControls& gui_control_latest, DplControl::StartMode& d
     if (dpl_control_start_mode_latest.grab_play_mode) {
         // Get file information and apply it
         IscRawFileHeader raw_file_headaer = {};
-        int ret = GetPlayFileInformation(image_state, dpl_control_start_mode_latest.play_file_name, &raw_file_headaer);
+        IscPlayFileInformation play_file_information = {};
+        int ret = GetPlayFileInformation(image_state, dpl_control_start_mode_latest.play_file_name, &raw_file_headaer, &play_file_information);
 
         // Update camera-specific parameters
         image_state->b = raw_file_headaer.base_length;

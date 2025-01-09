@@ -638,9 +638,9 @@ bool DplControl::GetCameraParameter(float* b, float* bf, float* dinf, int* width
  * @retval false 失敗
  *
  */
-bool DplControl::GetFileInformation(wchar_t* file_name, IscRawFileHeader* raw_file_headaer)
+bool DplControl::GetFileInformation(wchar_t* file_name, IscRawFileHeader* raw_file_headaer, IscPlayFileInformation* play_file_information)
 {
-    DPL_RESULT ret = isc_dpl_->GetFileInformation(file_name, raw_file_headaer);
+    DPL_RESULT ret = isc_dpl_->GetFileInformation(file_name, raw_file_headaer, play_file_information);
     if (ret != DPC_E_OK) {
         return false;
     }

@@ -82,7 +82,7 @@ int DplStop(ImageState* image_state);
 /** @brief Retrieves header information for saved data files.
 	@return 0, if successful.
  */
-int GetPlayFileInformation(ImageState* image_state, wchar_t* file_name, IscRawFileHeader* raw_file_headaer);
+int GetPlayFileInformation(ImageState* image_state, wchar_t* file_name, IscRawFileHeader* raw_file_headaer, IscPlayFileInformation* play_file_information);
 
 /** @brief Displays the acquired image using OpenCV functionality Normally not called.
 	@return 0, if successful.

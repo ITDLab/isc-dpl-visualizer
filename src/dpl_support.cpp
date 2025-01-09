@@ -234,9 +234,9 @@ int DplStop(ImageState* image_state)
  * @retval other 失敗
  *
  */
-int GetPlayFileInformation(ImageState* image_state, wchar_t* file_name, IscRawFileHeader* raw_file_headaer)
+int GetPlayFileInformation(ImageState* image_state, wchar_t* file_name, IscRawFileHeader* raw_file_headaer, IscPlayFileInformation* play_file_information)
 {
-	bool ret = image_state->dpl_control->GetFileInformation(file_name, raw_file_headaer);
+	bool ret = image_state->dpl_control->GetFileInformation(file_name, raw_file_headaer, play_file_information);
 	if (!ret) {
 		return -1;
 	}
